@@ -12,6 +12,7 @@ import Load
 import Scoring
 import Person
 import hellopose
+import VectorCalcs
 
 webcam = cv2.VideoCapture(0)
 mpPose = mp.solutions.pose
@@ -54,10 +55,11 @@ while True:
 
             lm = dict_of_landmarks_raw[key]
             dict_of_landmarks[key] = (int(lm.x * w), int(lm.y * h))
-
         
-        """
 
+        # Neck Code
+
+        """
         Neck Angle
 
         The algorithm essentially uses the z positions of shoulders to determine if the person has turned
@@ -82,14 +84,92 @@ while True:
             else:
                 neck_angle = 0
 
+            
+            if neck_angle > 90:
+                neck_angle = -(180 - neck_angle)
+
             neck1.setAngle(neck_angle)
-            Vahe = Person.Person(neck1,trunk1,legs1,load1,upperArm1,lowerArm1,wrist1,0,0)
-            cv2.putText(frame, str(Vahe.getREBAScore()), (50,50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
-            cv2.putText(frame, str(neck_angle), (400,50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
+            cv2.putText(frame, str(neck_angle), (400,50), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,255,0), 1)
+
+        else:
+
+            rise = dict_of_landmarks_raw[11].y - dict_of_landmarks_raw[7].y
+            run = dict_of_landmarks_raw[11].z - dict_of_landmarks_raw[7].z
+
+            if run != 0:
+
+                m = (rise)/(run) # slope, rise over run
+                neck_angle = int(90 - math.degrees(math.atan(m)))
+
+            else:
+
+                neck_angle = 0
+
+            
+            if neck_angle > 90:
+                neck_angle = -(180 - neck_angle)
+
+            neck1.setAngle(neck_angle)
+            cv2.putText(frame, str(neck_angle), (400,50), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,255,0), 1)
 
 
-        #cv2.circle(frame, dict_of_landmarks[12], 10, (255,0,150), -1)
+        """
+
+        Neck Twisted
+        We're going to find the angle between the lines between the ears and those between the shoulders
+        To find the angle between them to see if they're approximately parallel or not.
+
+        Also, the angle measuring only works well if we can see the 23rd and 24th landmarks (hips). So, we'll check to see if they appear
+        before checking for turning
+
+        And if we are side-facing, comparing the eye landmarks to the shoulder landmarks works better than ear to shoulder.
+        So, we'll use the turned boolean to decide which one to use
+        
+        """
+
+        if not turned:
+
+            earL = (dict_of_landmarks_raw[7].x, dict_of_landmarks_raw[7].y, dict_of_landmarks_raw[7].z)
+            earR = (dict_of_landmarks_raw[8].x, dict_of_landmarks_raw[8].y, dict_of_landmarks_raw[8].z)
+            earVector = VectorCalcs.getVector(earL, earR)
+
+            shoulderL = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z)
+            shoulderR = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z)  
+            shoulderVector = VectorCalcs.getVector(shoulderL, shoulderR) 
+
+
+            neckTwistedAngle = VectorCalcs.getAngleBetweenVectors(shoulderVector, earVector)
+            twistedActivationValue = 20
+
+        else:
+
+            mouthL = (dict_of_landmarks_raw[9].x, dict_of_landmarks_raw[9].y, dict_of_landmarks_raw[9].z)
+            mouthR = (dict_of_landmarks_raw[10].x, dict_of_landmarks_raw[10].y, dict_of_landmarks_raw[10].z)
+            mouthVector = VectorCalcs.getVector(mouthL, mouthR)
+
+            shoulderL = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z)
+            shoulderR = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z)  
+            shoulderVector = VectorCalcs.getVector(shoulderL, shoulderR) 
+
+
+            neckTwistedAngle = VectorCalcs.getAngleBetweenVectors(shoulderVector, mouthVector)
+            twistedActivationValue = 7
+
+        # cv2.putText(frame, "Neck Twisted Angle:  " + str(int(neckTwistedAngle)), (200,75), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0), 1)
+        
+        isTwisted = False
+
+       
+
+        isTwisted = (neckTwistedAngle > twistedActivationValue) and (dict_of_landmarks_raw[23].y <= 1 and dict_of_landmarks_raw[24].y <= 1) # Making sure bottom joints are in frame
+        if isTwisted:
+                cv2.putText(frame, "Neck Twisted " + str(int(neckTwistedAngle)), (200,75), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0), 1)
+
+        neck1.setTwisted(isTwisted)
+        
     
+    Vahe = Person.Person(neck1,trunk1,legs1,load1,upperArm1,lowerArm1,wrist1,0,0)
+    cv2.putText(frame, str(Vahe.getREBAScore()), (50,50), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 1)
     
 
     cv2.imshow('WINDOW', frame)
@@ -99,3 +179,4 @@ while True:
 
 webcam.release()
 cv2.destroyAllWindows()
+exit()

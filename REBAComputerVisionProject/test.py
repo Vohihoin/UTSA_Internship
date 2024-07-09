@@ -1,2 +1,4 @@
-cool = (1,6,6) >= (3,4,5)
-print(cool)
+import VectorCalcs
+import math
+
+print(VectorCalcs.getUnitVector((5,5,5)))

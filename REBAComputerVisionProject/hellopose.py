@@ -15,7 +15,8 @@ import hellopose
 import VectorCalcs
 import numpy as np
 
-webcam = cv2.VideoCapture(0)
+capture_source = 0
+webcam = cv2.VideoCapture(capture_source)
 mpPose = mp.solutions.pose
 mpDraw = mp.solutions.drawing_utils
 pose = mpPose.Pose(static_image_mode=True,
@@ -23,12 +24,12 @@ pose = mpPose.Pose(static_image_mode=True,
     enable_segmentation=True,
     min_detection_confidence=0.5)
 
-neck1 = Neck.Neck(10,True, False)
-trunk1 = Trunk.Trunk(0,False,True)
-legs1 = Legs.Legs(True,40)
-upperArm1 = UpperArm.UpperArm(10, True, False, True, True)
+neck1 = Neck.Neck(10,False, False)
+trunk1 = Trunk.Trunk(0,False,False)
+legs1 = Legs.Legs(True,10)
+upperArm1 = UpperArm.UpperArm(10, False, False, False, False)
 lowerArm1 = LowerArm.LowerArm(70)
-wrist1 = Wrist.Wrist(0,True)
+wrist1 = Wrist.Wrist(0,False)
 load1 = Load.Load(7,False)
 Vahe = Person.Person(neck1,trunk1,legs1,load1,upperArm1,lowerArm1,wrist1,0,0)
 
@@ -59,7 +60,8 @@ while True:
 
             lm = dict_of_landmarks_raw[key]
             dict_of_landmarks[key] = (int(lm.x * w), int(lm.y * h))
-        
+
+        pointsNecessary = True #boolean describing whether the necessary points for each section of measurement are available
 
         # Neck Code
 
@@ -72,54 +74,32 @@ while True:
         7 is left ear, 11 is left shoulder, 12 is right shoulder
 
         """
-        shoulderzdistance = dict_of_landmarks_raw[11].z - dict_of_landmarks_raw[12].z
-        turned = abs(shoulderzdistance) > 0.5 #boolean to check if person is turned
 
-    
-        
-        if turned:
+        pointsNecessary = 7 in dict_of_landmarks_raw and 8 in dict_of_landmarks_raw and 11 in dict_of_landmarks_raw and 12 in dict_of_landmarks_raw
+
+        if pointsNecessary:
+
+            # Utility points and vectors
+            point7 = (dict_of_landmarks_raw[7].x, dict_of_landmarks_raw[7].y, dict_of_landmarks_raw[7].z) 
+            point8 = (dict_of_landmarks_raw[8].x, dict_of_landmarks_raw[8].y, dict_of_landmarks_raw[8].z) 
+            point11 = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z) 
+            point12 = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z) 
+            verticalUpVector = (0,-1,0)
             
-            if shoulderzdistance > 0: # Left is facing the screen because left z > 0
+            shoulderzdistance = dict_of_landmarks_raw[11].z - dict_of_landmarks_raw[12].z
+            turned = abs(shoulderzdistance) > 0.5 #boolean to check if person is turned
 
-                rise = dict_of_landmarks[11][1] - dict_of_landmarks[7][1]
-                run = dict_of_landmarks[11][0] - dict_of_landmarks[7][0]
+            shoulder_midpoint = VectorCalcs.midPoint(point11, point12)
+            eye_midpoint = VectorCalcs.midPoint(point7, point8)
+            neckVector = VectorCalcs.getVector(shoulder_midpoint, eye_midpoint)
 
-                if run != 0:
+            neck_angle= VectorCalcs.getAngleBetweenVectors(neckVector, verticalUpVector)
+            neck1.setAngle(neck_angle)
+            cv2.putText(frame, str(int(neck_angle)),  (400, 100), cv2.FONT_ITALIC, 0.6, (0,0,255))
 
-                    m = (rise)/(run) # slope, rise over run
-                    neck_angle = int(90 - math.degrees(math.atan(m)))
 
-                else:
-                    neck_angle = 0
 
-            
-                if neck_angle > 90:
-                    neck_angle = -(180 - neck_angle)
 
-                neck1.setAngle(neck_angle)
-                cv2.putText(frame, str(neck_angle), (400,50), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,255,0), 1)
-
-            else:
-
-                rise = dict_of_landmarks[12][1] - dict_of_landmarks[8][1]
-                run = dict_of_landmarks[12][0] - dict_of_landmarks[8][0]
-
-                if run != 0:
-
-                    m = (rise)/(run) # slope, rise over run
-                    neck_angle = int(90 - math.degrees(math.atan(m)))
-
-                else:
-                    neck_angle = 0
-
-                if neck_angle < 0:
-                    neck_angle = -neck_angle
-            
-                if neck_angle > 90:
-                    neck_angle = -(180 - neck_angle)
-
-                neck1.setAngle(neck_angle)
-                cv2.putText(frame, str(neck_angle), (400,50), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,255,0), 1)
 
 
 
@@ -137,45 +117,49 @@ while True:
         
         """
 
-        if not turned:
-
-            earL = (dict_of_landmarks_raw[7].x, dict_of_landmarks_raw[7].y, dict_of_landmarks_raw[7].z)
-            earR = (dict_of_landmarks_raw[8].x, dict_of_landmarks_raw[8].y, dict_of_landmarks_raw[8].z)
-            earVector = VectorCalcs.getVector(earL, earR)
-
-            shoulderL = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z)
-            shoulderR = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z)  
-            shoulderVector = VectorCalcs.getVector(shoulderL, shoulderR) 
-
-
-            neckTwistedAngle = VectorCalcs.getAngleBetweenVectors(shoulderVector, earVector)
-            twistedActivationValue = 20
-
-        else:
-
-            mouthL = (dict_of_landmarks_raw[9].x, dict_of_landmarks_raw[9].y, dict_of_landmarks_raw[9].z)
-            mouthR = (dict_of_landmarks_raw[10].x, dict_of_landmarks_raw[10].y, dict_of_landmarks_raw[10].z)
-            mouthVector = VectorCalcs.getVector(mouthL, mouthR)
-
-            shoulderL = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z)
-            shoulderR = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z)  
-            shoulderVector = VectorCalcs.getVector(shoulderL, shoulderR) 
-
-
-            neckTwistedAngle = VectorCalcs.getAngleBetweenVectors(shoulderVector, mouthVector)
-            twistedActivationValue = 7
-
-        # cv2.putText(frame, "Neck Twisted Angle:  " + str(int(neckTwistedAngle)), (200,75), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0), 1)
+        pointsNecessary = 7 in dict_of_landmarks_raw and 8 in dict_of_landmarks_raw and 11 in dict_of_landmarks_raw and 12 in dict_of_landmarks_raw
         
-        isTwisted = False
-        isSideBending = False
+        if pointsNecessary:
+
+            if (not turned):
+
+                earL = (dict_of_landmarks_raw[7].x, dict_of_landmarks_raw[7].y, dict_of_landmarks_raw[7].z)
+                earR = (dict_of_landmarks_raw[8].x, dict_of_landmarks_raw[8].y, dict_of_landmarks_raw[8].z)
+                earVector = VectorCalcs.getVector(earL, earR)
+
+                shoulderL = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z)
+                shoulderR = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z)  
+                shoulderVector = VectorCalcs.getVector(shoulderL, shoulderR) 
+
+
+                neckTwistedAngle = VectorCalcs.getAngleBetweenVectors(shoulderVector, earVector)
+                twistedActivationValue = 20
+
+            else:
+
+                mouthL = (dict_of_landmarks_raw[9].x, dict_of_landmarks_raw[9].y, dict_of_landmarks_raw[9].z)
+                mouthR = (dict_of_landmarks_raw[10].x, dict_of_landmarks_raw[10].y, dict_of_landmarks_raw[10].z)
+                mouthVector = VectorCalcs.getVector(mouthL, mouthR)
+
+                shoulderL = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z)
+                shoulderR = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z)  
+                shoulderVector = VectorCalcs.getVector(shoulderL, shoulderR) 
+
+
+                neckTwistedAngle = VectorCalcs.getAngleBetweenVectors(shoulderVector, mouthVector)
+                twistedActivationValue = 7
+
+            # cv2.putText(frame, "Neck Twisted Angle:  " + str(int(neckTwistedAngle)), (200,75), cv2.FONT_HERSHEY_COMPLEX, 1, (255,0,0), 1)
+        
+            isTwisted = False
+            isSideBending = False
 
        
 
-        isTwisted = (neckTwistedAngle > twistedActivationValue) and (dict_of_landmarks_raw[23].y <= 1 and dict_of_landmarks_raw[24].y <= 1) # Making sure bottom joints are in frame
-        isSideBending = isTwisted
+            isTwisted = (neckTwistedAngle > twistedActivationValue) and (dict_of_landmarks_raw[23].y <= 1 and dict_of_landmarks_raw[24].y <= 1) # Making sure bottom joints are in frame
+            isSideBending = isTwisted
 
-        neck1.setTwisted(isTwisted)
+            neck1.setTwisted(isTwisted)
         neck1.setSideBending(isSideBending)
 
 
@@ -193,51 +177,239 @@ while True:
 
         """
   
+        pointsNecessary = (11 in dict_of_landmarks_raw) and (12 in dict_of_landmarks_raw) and (23 in dict_of_landmarks_raw) and (24 in dict_of_landmarks_raw)
         
-    if (11 in dict_of_landmarks_raw) and (12 in dict_of_landmarks_raw) and (23 in dict_of_landmarks_raw) and (24 in dict_of_landmarks_raw):
+        if pointsNecessary:
 
-        #Utility Variables
+            #Utility Variables
 
-        point23 = (dict_of_landmarks_raw[23].x, dict_of_landmarks_raw[23].y, dict_of_landmarks_raw[23].z) 
-        point24 = (dict_of_landmarks_raw[24].x, dict_of_landmarks_raw[24].y, dict_of_landmarks_raw[24].z) 
-        hip_midpoint = VectorCalcs.midPoint(point23, point24)
+            point23 = (dict_of_landmarks_raw[23].x, dict_of_landmarks_raw[23].y, dict_of_landmarks_raw[23].z) 
+            point24 = (dict_of_landmarks_raw[24].x, dict_of_landmarks_raw[24].y, dict_of_landmarks_raw[24].z) 
+            hip_midpoint = VectorCalcs.midPoint(point23, point24)
 
-        point11 = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z) 
-        point12 = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z) 
-        shoulder_midpoint = VectorCalcs.midPoint(point11, point12)
+            point11 = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z) 
+            point12 = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z) 
+            shoulder_midpoint = VectorCalcs.midPoint(point11, point12)
 
-        
-        # hts - hip to shoulder
-        # h - hip
-        # s - shoulder
-        # hpen - hip perpendicular (vector that is perpendicular to the hip)
+            
+            # hts - hip to shoulder
+            # h - hip
+            # s - shoulder
+            # hpen - hip perpendicular (vector that is perpendicular to the hip)
 
-        htsVector = VectorCalcs.getVector(hip_midpoint, shoulder_midpoint)
-        hVector = VectorCalcs.getVector(point24, point23)
-        sVector = VectorCalcs.getVector(point12, point11)
+            htsVector = VectorCalcs.getVector(hip_midpoint, shoulder_midpoint)
+            hVector = VectorCalcs.getVector(point24, point23)
+            sVector = VectorCalcs.getVector(point12, point11)
 
-        
-
-        # angle calcs
-        hPlanarVector = ( point12[0]-point11[0], 0, (point11[2]-point12[2]) )# y is 0 because vector is planar
-        hpenVector = (hPlanarVector[2], 0, -hPlanarVector[0]) # we flip z and x and make the new z negative since we're rotating about the y-axis
         
 
-        trunk_angle = -(90 - VectorCalcs.getAngleBetweenVectors(hpenVector, htsVector))
-        trunk1.setAngle(trunk_angle)
+            # angle calcs
+            hPlanarVector = ( point12[0]-point11[0], 0, (point11[2]-point12[2]) )# y is 0 because vector is planar
+            hpenVector = (hPlanarVector[2], 0, -hPlanarVector[0]) # we flip z and x and make the new z negative since we're rotating about the y-axis
+
+            verticalUpVector = (0,-1,0)
+        
+
+            trunk_angle = VectorCalcs.getAngleBetweenVectors(verticalUpVector, htsVector)
+            trunk1.setAngle(trunk_angle)
+            #cv2.putText(frame, str(trunk_angle), (200,100), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
+
+    
+            """
+    
+            Trunk Twisted and Side-bending. Similar approach to side bending for neck.
+            Meause angle between shoulder vector and hip vector
+    
+            """
+
+            # still need to tune the threshold angle
+            thresholdAngle = 25
+
+            trunk_twisted_angle = VectorCalcs.getAngleBetweenVectors(hVector, sVector)
+            trunkTwisted = trunk_twisted_angle > thresholdAngle
+            trunkSideBending = trunkTwisted
+
+            trunk1.setTwisted(trunkTwisted)
+            trunk1.setSideBending(trunkSideBending)
+
+        # Legs
+        
+        """
+        Legs Down
+
+        To get this, we compare the y-position of landmarks 29 and 30
+
+        """
+
+        pointsNecessary = (29 in dict_of_landmarks_raw) and (30 in dict_of_landmarks_raw)
+
+        if pointsNecessary:
+            point29 = (dict_of_landmarks_raw[29].x, dict_of_landmarks_raw[29].y, dict_of_landmarks_raw[29].z) 
+            point30 = (dict_of_landmarks_raw[30].x, dict_of_landmarks_raw[30].y, dict_of_landmarks_raw[30].z) 
+            heelDifferenceThreshold = 0.1
+
+            heelDifference = abs(point29[1] - point30[1])
+            legsDown = not (heelDifference > heelDifferenceThreshold) # still needs to be tuned
+
+            #cv2.putText(frame, str(round(heelDifference, 3)), (100,100), cv2.FONT_ITALIC, 1, (0,0,255))
+
+            legs1.setLegsDown(legsDown)
 
     
         """
-    
-        Trunk Twisted and Side-bending. Similar approach to side bending for neck.
-        Meause angle between shoulder vector and hip vector
-    
+        Legs Angle
+
+        We're going to use the hPen vector from the trunk code before for this because that vector is basically
+        the body's direction vector. So, it can be used for measuring the angles.
+
+        Then depending on whether the left or right side is closer, we either use the left or right side to get the thigh vector
+
         """
 
-        trunk_twisted_angle = VectorCalcs.getAngleBetweenVectors(hVector, sVector)
-        cv2.putText(frame, str(int(trunk_twisted_angle)), (100,100), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255))
+        pointsNecessary = 23 in dict_of_landmarks_raw and 24 in dict_of_landmarks_raw and 25 in dict_of_landmarks_raw and 26 in dict_of_landmarks_raw
+
+        if pointsNecessary:
+
+            point23 = (dict_of_landmarks_raw[23].x, dict_of_landmarks_raw[23].y, dict_of_landmarks_raw[23].z) 
+            point24 = (dict_of_landmarks_raw[24].x, dict_of_landmarks_raw[24].y, dict_of_landmarks_raw[24].z) 
+            point25 = (dict_of_landmarks_raw[25].x, dict_of_landmarks_raw[25].y, dict_of_landmarks_raw[25].z) 
+            point26 = (dict_of_landmarks_raw[26].x, dict_of_landmarks_raw[26].y, dict_of_landmarks_raw[26].z)
+
+            verticalUpVector = (0,-1,0)
+
+            leftSideCloser= point25[2] < point26[2]  
     
+            if leftSideCloser:
+
+                thighVector = VectorCalcs.getVector(point25, point23)
+
+            else:
+
+                thighVector = VectorCalcs.getVector(point26, point24)
+
+    
+            leg_angle = (VectorCalcs.getAngleBetweenVectors(thighVector, verticalUpVector)) 
+            
+            legs1.setAngle(leg_angle)
+            cv2.putText(frame, str(int(leg_angle)), (500,100), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
+            
+
+
+        
+        # Upper Arm
+            
+        """
+        Upper Arm Angle
+
+        Measure angle between our upper arm vector and vertical
+
+        """
+        pointsNecessary = 11 in dict_of_landmarks_raw and 12 in dict_of_landmarks_raw and 13 in dict_of_landmarks_raw and 14 in dict_of_landmarks_raw
+        if pointsNecessary:
+
+            point11 = (dict_of_landmarks_raw[11].x, dict_of_landmarks_raw[11].y, dict_of_landmarks_raw[11].z) 
+            point12 = (dict_of_landmarks_raw[12].x, dict_of_landmarks_raw[12].y, dict_of_landmarks_raw[12].z) 
+            point13 = (dict_of_landmarks_raw[13].x, dict_of_landmarks_raw[13].y, dict_of_landmarks_raw[13].z) 
+            point14 = (dict_of_landmarks_raw[14].x, dict_of_landmarks_raw[14].y, dict_of_landmarks_raw[14].z) 
+
+            verticalDownVector = (0, 1, 0)
+            leftSideCloser= point11[2] < point12[2]
+
+            if leftSideCloser:
+
+                upperArmVector = VectorCalcs.getVector(point11,point13)
+            else:
+                upperArmVector = VectorCalcs.getVector(point12, point14)
+
+            upperArmAngle = VectorCalcs.getAngleBetweenVectors(upperArmVector, verticalDownVector)
+            upperArm1.setAngle(upperArmAngle)
+
+
+            #cv2.putText(frame, str(int(upperArmAngle)), (100,100), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
+
+        #Lower Arm
+        """
+
+        Lower Arm Angle
+
+        """
+
+        pointsNecessary = 13 in dict_of_landmarks_raw and 14 in dict_of_landmarks_raw and 15 in dict_of_landmarks_raw and 16 in dict_of_landmarks_raw
+
+        if pointsNecessary:
+
+            point13 = (dict_of_landmarks_raw[13].x, dict_of_landmarks_raw[13].y, dict_of_landmarks_raw[13].z) 
+            point14 = (dict_of_landmarks_raw[14].x, dict_of_landmarks_raw[14].y, dict_of_landmarks_raw[14].z) 
+            point15 = (dict_of_landmarks_raw[15].x, dict_of_landmarks_raw[15].y, dict_of_landmarks_raw[15].z) 
+            point16 = (dict_of_landmarks_raw[16].x, dict_of_landmarks_raw[16].y, dict_of_landmarks_raw[16].z) 
+            verticalDownVector = (0, 1, 0)
+
+            leftSideCloser= point15[2] < point16[2]
+
+            if leftSideCloser:
+
+                lowerArmVector = VectorCalcs.getVector(point13, point15)
+
+            else:
+
+                lowerArmVector = VectorCalcs.getVector(point14,point16)
+
+            lowerArmAngle = VectorCalcs.getAngleBetweenVectors(lowerArmVector, verticalDownVector)
+            lowerArm1.setAngle(lowerArmAngle)
+
+        
+        """
+        
+        Wrist Angle and Twisted
+        Wrist Angle:- We create a wrist vector and measure it's angle from the vertical and use that to figure out the angle from
+        the horizontal
+        Wrist Twisted:- (Don't know if it's possible using only media pipeline)
+
+        """
+
+        pointsNecessary = 13 in dict_of_landmarks_raw and 14 in dict_of_landmarks_raw and 15 in dict_of_landmarks_raw and 16 in dict_of_landmarks_raw and 17 in dict_of_landmarks_raw and 18 in dict_of_landmarks_raw and 19 in dict_of_landmarks_raw and 20 in dict_of_landmarks_raw
+        if pointsNecessary:
+
+            point13 = (dict_of_landmarks_raw[13].x, dict_of_landmarks_raw[13].y, dict_of_landmarks_raw[13].z) 
+            point14 = (dict_of_landmarks_raw[14].x, dict_of_landmarks_raw[14].y, dict_of_landmarks_raw[14].z) 
+            point15 = (dict_of_landmarks_raw[15].x, dict_of_landmarks_raw[15].y, dict_of_landmarks_raw[15].z) 
+            point16 = (dict_of_landmarks_raw[16].x, dict_of_landmarks_raw[16].y, dict_of_landmarks_raw[16].z) 
+            point17 = (dict_of_landmarks_raw[17].x, dict_of_landmarks_raw[17].y, dict_of_landmarks_raw[17].z) 
+            point18 = (dict_of_landmarks_raw[18].x, dict_of_landmarks_raw[18].y, dict_of_landmarks_raw[18].z) 
+            point19 = (dict_of_landmarks_raw[19].x, dict_of_landmarks_raw[19].y, dict_of_landmarks_raw[19].z) 
+            point20 = (dict_of_landmarks_raw[20].x, dict_of_landmarks_raw[20].y, dict_of_landmarks_raw[20].z) 
+            verticalUpVector = (0,-1,0)
+
+
+            # Angle Stuff
+            leftHandMidpoint = VectorCalcs.midPoint(point17, point19)
+            rightHandMidpoint = VectorCalcs.midPoint(point18, point20)
+
+            leftHandVector = VectorCalcs.getVector(point15, leftHandMidpoint)
+            rightHandVector = VectorCalcs.getVector(point16, rightHandMidpoint)
+
+            right_wrist_angle = (VectorCalcs.getAngleBetweenVectors(verticalUpVector, rightHandVector) - 90)
+            left_wrist_angle = (VectorCalcs.getAngleBetweenVectors(verticalUpVector, leftHandVector) - 90)
+
+            # we use the worst angle among the wrists to set our angle
+
+            if (abs(left_wrist_angle) > abs(right_wrist_angle)):
+                wristAngle = left_wrist_angle
+
+            else:
+                wristAngle = right_wrist_angle
+
+        
+            wrist1.setAngle(wristAngle)
+
+    # Update all the body part values
     Vahe = Person.Person(neck1,trunk1,legs1,load1,upperArm1,lowerArm1,wrist1,0,0)
+    cv2.putText(frame, "Right Wrist Angle : " + str(int(right_wrist_angle)), (100,50), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
+    cv2.putText(frame, "Left Wrist Angle " +str(int(left_wrist_angle)), (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
+    cv2.putText(frame, "ScoreA: " +str(Vahe.getScoreA()), (100,150), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
+    cv2.putText(frame, "ScoreB: " +str(Vahe.getScoreB()), (100,200), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
+    cv2.putText(frame, "ScoreC: " +str(Vahe.getScoreC()), (100,250), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
+    cv2.putText(frame, "REBA Score: " +str(Vahe.getREBAScore()), (100,300), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
     
     
 

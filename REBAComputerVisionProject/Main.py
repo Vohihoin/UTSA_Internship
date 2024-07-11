@@ -7,7 +7,6 @@ import Wrist
 import Load
 import Scoring
 import Person
-import hellopose
 import cv2
 
 
@@ -20,8 +19,4 @@ wrist1 = Wrist.Wrist(0,True)
 load1 = Load.Load(7,False)
 REBA_SCORE = 0
 
-while True:
 
-    neck1.setAngle(hellopose.neck_angle)
-    Vahe = Person.Person(neck1,trunk1,legs1,load1,upperArm1,lowerArm1,wrist1,0,0)
-    REBA_SCORE = Vahe.getREBAScore()

@@ -54,7 +54,13 @@ def roundVectorValues(vector):
 
     return ( round(vector[0], 3), round(vector[1], 3), round(vector[2], 3) )
     
+def getDistanceBetweenPoints(point1, point2):
 
+    dx = point1[0] - point2[0]
+    dy = point1[1] - point2[1]
+    dz = point1[2] - point2[2]
+
+    return math.sqrt(dx**2 + dy**2 + dz**2)
 
 
 

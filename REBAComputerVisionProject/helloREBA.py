@@ -499,9 +499,6 @@ while True:
 
 
     cv2.putText(frame, "REBA Score: " +str(REBAScore), (100,300), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
-    
-    
-
     cv2.imshow('WINDOW', frame)
 
     if cv2.waitKey(5) & 0XFF==ord('q'):

@@ -13,17 +13,9 @@ def resizeImage(image, factor):
     h, w, c = image.shape
     return(cv2.resize(image, (int(w*factor), int(h*factor))))
 
-xml = """
-<mujoco>
-     <worldbody>
-          <light name = "light1" pos = "0 0 1" dir = "{}" active = "true"/>
-          <geom name = "geom1" type = "box" pos = "1 1 1" size = "0.2 0.2 0.2" rgba="0 1 0 1" />
-          <geom name = "geom2" type = "sphere" pos = "0.5 0.5 0.5" size = "0.2" rgba = "0 0 1 1" />
-     </worldbody>
-</mujoco>
 
-
-""".format("0 0 -1")
+print(os.path.isfile("hellomujoco.xml"))
+xml = open("hellomujoco.xml", "r").read()
 
 duration = 10 # seconds
 framerate = 60 # Hz
@@ -38,16 +30,24 @@ frames = []
 FPS = 60
 with mujoco.Renderer(model) as renderer:
     
-    mujoco.mj_resetData(model, data)
-    while data.time < duration:
-        
-        mujoco.mj_step(model, data) # basically our 2ms timer
-        cv2.waitKey(int(1000/FPS) - 2)
+    mujoco.mj_resetData(model, data) # resets all quantities to as they were at the beginning of the simulation
 
-        if len(frames) < data.time * framerate:
-            
-          renderer.update_scene(data)
-          frame = renderer.render()
-          cv2.imshow("Window", resizeImage(frame, 2))
+    while True:
+        
+        mujoco.mj_step(model, data) # moves the simulation forward in time waits 2 sec
+        renderer.update_scene(data) # refresging rendering object
+        frame = renderer.render()
+
+        cv2.imshow("Window", resizeImage(frame, 2))
+
+        if cv2.waitKey(int(1000/FPS) - 2) & 0XFF==ord('q'):
+            break
+
+    
+
+cv2.destroyAllWindows()
+exit()
+
+
 
 

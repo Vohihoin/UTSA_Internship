@@ -1,7 +1,7 @@
 import mujoco
 import cv2
 import os
-from UtilityClasses import helloUtility as imp
+from UtilityClasses import helloUtility as util
 
 #xml = open("VaheMuJoCoProject\\hellojoints.xml", "r").read()
 
@@ -13,6 +13,7 @@ xml = """
     <option gravity = "0 0 -1000" integrator = "RK4"/>
 
     <asset>
+        <mesh file = "VaheMuJoCoProject\\STLFiles\\CameraMount.stl" />
         <texture name = "grid" type = "2d" builtin="checker" rgb1 = "0 0 1" 
         rgb2 = "1 1 1" width = "300" height = "300"/>
         <material name = "grid" texture = "grid" texrepeat = "8 8" reflectance = "0.2"/>
@@ -22,11 +23,12 @@ xml = """
 
         {lights}
 
-        <camera name="camera1" euler = "-45 0 180" pos = "0 10 10"/>
-        <camera name = "camera2" pos = "0 -10 4" xyaxes = "1 0 0 0 0 1"/>
+
+        <camera name="camera1" euler = "-45 0 180" pos = "0 20 20"/>
+        <camera name = "camera2" pos = "0 -20 4" xyaxes = "1 0 0 0 0 1"/>
         <geom name = "floor" type = "plane" pos = "0 0 -1" size = "20 20 0.1" material = "grid"/>
 
-        <body name = "ball system" euler = "0 0 0">
+        <body name = "ball box system" euler = "0 0 0">
 
             <freejoint/>
             <geom name="ball" type="sphere" mass = "900" size="0.5" rgba = "1 1 1 1" pos = "0 0 5" />
@@ -34,12 +36,18 @@ xml = """
 
         </body>
 
+        <geom type = "mesh" mesh = "CameraMount" pos = "0 0 0" />
 
     </worldbody>
+
+    <keyframe>
+        <key name = "spinning"  qpos = "0 0 0 0 0 0 0" qvel = "0 0 0 0 0 200"/>
+    </keyframe>
+
 </mujoco>
 
 
-""".format(lights = imp.ringOfLightsXMLString(1, 5, 20))
+""".format(lights = util.ringOfLightsXMLString(1, 5, 20))
 
 
 model = mujoco.MjModel.from_xml_string(xml)
@@ -56,6 +64,8 @@ scene_optioner = mujoco.MjvOption()
 
 FPS = 100
 
+mujoco.mj_resetDataKeyframe(model, data, 0)
+
 with mujoco.Renderer(model) as renderer:
     while True:
 
@@ -64,17 +74,18 @@ with mujoco.Renderer(model) as renderer:
         renderer.update_scene(data, scene_option=scene_optioner, camera="camera1")
 
         frame = renderer.render()
-        cv2.imshow("WINDOW1", imp.resizeImage(frame, 3))
+        cv2.imshow("WINDOW1", util.resizeImage(frame, 2))
 
 
         renderer.update_scene(data, scene_option=scene_optioner, camera="camera2")
 
         frame = renderer.render()
-        cv2.imshow("WINDOW2", imp.resizeImage(frame, 3))
+        cv2.imshow("WINDOW2", util.resizeImage(frame, 2))
 
 
         if cv2.waitKey(int(1000/FPS) - 2) & 0XFF==ord('q'):
             break
+
 
 cv2.destroyAllWindows()
 exit()

@@ -1,9 +1,12 @@
 import mujoco
 import cv2
+from UtilityClasses import helloUtility as util
 
 
 xml = """
 <mujoco>
+
+    <option gravity = "0 -10 0"/>
 
     <asset>
         <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\base.stl"/>
@@ -19,15 +22,59 @@ xml = """
     </asset>
 
     <worldbody>
-        <camera name="main_camera" pos = "0 10 10" mode="targetbody" target="robot"/>
-        <geom name = "floor" type = "plane" size = "10 10 0.1" pos = "0 0 0" rgba = "1 1 1 1"/>
+        <camera name="main_camera" pos = "0.2 1 0.75" mode="targetbody" target="robot"/>
+        {lights}
         <body name="robot" euler = "0 0 0" pos = "0 0 0">
-            <geom name="base" type="mesh" mesh = "base" pos = "0 0 0" rgba = "0 0 1 1"/>
+            <geom name="base" type="mesh" mesh = "base" pos = "0 0 0" euler = "-90 0 180"/>
+            <geom name="big_connector_rod_back" type="mesh" mesh="big_connector_rod_back" euler = "90 0 0" pos = "0 0.012700 0"/>
+
+
+            <body name="top_board" pos = "0 -0.050800 0">
+                <joint name= "board_to_base" pos="0 0 0" axis = "0 1 0" damping="0.68"/>
+                <geom name="top_board" euler = "-90 0 0" type="mesh" mass = "1" mesh="top_board" />
+
+                <body name="long_hinge_left" pos = "0.304800 0 0">
+
+                    <joint name="long_hinge_left_to_board" axis="0 1 0"/>
+                    <geom name= "long_hinge_left" type="mesh" mesh = "long_hinge_left"/>
+
+                    <body name="long_hinge_right" pos = "0 -0.257581 0">
+                        <geom name= "long_hinge_right" type="mesh" mesh = "long_hinge_right"/>
+                    </body>
+
+                    <body name = "short_hinge_left" pos = "0.101600 0.006350 0">
+
+                        <joint name="short_hinge_to_long_hinge_left" pos = "0 0 0" axis="0 1 0"/>
+                        <geom name = "short_hinge_left" type = "mesh" euler = "-90 0 0" mesh = "short_hinge_left" />
+
+                        <body name = "short_hinge_right" pos = "0 -0.273050 0">
+                            <geom name = "short_hinge_right" type = "mesh" euler = "-90 0 0" mesh = "short_hinge_right" />
+                        </body>
+
+                        <body name = "small_connector_rod" pos = "0 0 0">
+                            <geom name = "small_connector_rod" type = "mesh" euler = "-90 0 0" mesh = "short_hinge_right" />
+                        </body>
+
+                    </body>
+
+                </body>
+
+
+
+            </body>
+            
         </body>
 
     </worldbody>
+
+    <actuator>
+        <motor name = "board_to_base_motor" joint="board_to_base"/>
+        <motor name = "long_hinge_left_to_board" joint="long_hinge_left_to_board"/>
+    </actuator>
+
+
 </mujoco>
-"""
+""".format(lights = util.ringOfLightsXMLString(50, 3, 5))
 
 model = mujoco.MjModel.from_xml_string(xml)
 data = mujoco.MjData(model)
@@ -45,10 +92,11 @@ with mujoco.Renderer(model, 480, 640) as renderer:
         renderer.update_scene(data, camera="main_camera")
 
         frame = renderer.render()
-        cv2.imshow("WINDOW", frame)
+        cv2.imshow("WINDOW", util.resizeImage(frame, 2))
         if cv2.waitKey(20) & 0XFF==ord('q'):
 
             break
+
 
 cv2.destroyAllWindows()
 exit()

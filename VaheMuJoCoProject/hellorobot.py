@@ -51,8 +51,8 @@ xml = """
                             <geom name = "short_hinge_right" type = "mesh" euler = "-90 0 0" mesh = "short_hinge_right" />
                         </body>
 
-                        <body name = "small_connector_rod" pos = "0 0 0">
-                            <geom name = "small_connector_rod" type = "mesh" euler = "-90 0 0" mesh = "short_hinge_right" />
+                        <body name = "small_connector_rod" pos = "0 0.006350 0">
+                            <geom name = "small_connector_rod" type = "mesh" euler = "90 0 0" mesh = "small_connector_rod" />
                         </body>
 
                     </body>
@@ -82,16 +82,28 @@ data = mujoco.MjData(model)
 mujoco.mj_kinematics(model, data)
 mujoco.mj_forward(model, data)
 
+scene_optioner = mujoco.MjvOption()
+scene_optioner.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = True
+
+
 with mujoco.Renderer(model, 480, 640) as renderer:
 
     mujoco.mj_resetData(model, data)
+    count = 1
 
     while True:
+
+
         
         mujoco.mj_step(model, data)
-        renderer.update_scene(data, camera="main_camera")
+        renderer.update_scene(data, camera="main_camera", scene_option=scene_optioner)
 
         frame = renderer.render()
+
+        if count == 1:
+            cv2.imwrite("first_frame.png", frame)
+            count += 1
+
         cv2.imshow("WINDOW", util.resizeImage(frame, 2))
         if cv2.waitKey(20) & 0XFF==ord('q'):
 

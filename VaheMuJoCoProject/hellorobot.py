@@ -65,7 +65,7 @@ xml = """
                         <geom name= "long_hinge_right" type="mesh" mesh = "long_hinge_right"/>
                     </body>
 
-                    <joint />
+                    
 
                     <body name="top_board2" pos = "-0.101600 0 0">
                         <geom name="top_board2" euler = "-90 0 0" type="mesh" mesh="top_board2" />
@@ -96,6 +96,52 @@ xml = """
 """.format(lights = util.ringOfLightsXMLString(50, 3, 5))
 
 
+xml = """
+<mujoco>
+
+    <option gravity = "0 -10 0"/>
+
+    <asset>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\base.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\base2.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\big_connector_rod_back.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\big_connector_rod_front.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\big_connector_rod_top.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\long_hinge_left.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\long_hinge_right.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\short_hinge_left.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\short_hinge_right.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\small_connector_rod.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\top_board.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\top_board2.stl"/>
+        <mesh file="VaheMuJoCoProject\\STLFiles\\BlackTeamRobot\\short_hinge_sc.stl"/>
+    </asset>
+
+    <worldbody>
+        <camera name="main_camera" pos = "-0.075 0.5 0.2" mode="targetbody" target="tier1"/>
+        {lights}
+        <body name="tier1">
+            <joint name="basejoint" pos="0 0 0" axis="0 1 0"/>
+            <body name="tier2a">
+                <geom name="long_hinge_left" euler = "0 0 0" type="mesh" mesh="long_hinge_left"/>
+                <body name="tier3a" pos="-0.101600 0 0">
+                    <joint name="top_board_joint" pos="0 0 0" axis="0 1 0"/>
+                    <geom name="top_board" euler = "-90 0 0" type="mesh" mesh="top_board2" />
+                </body>
+            </body>
+            <body name="tier2b">
+                <geom name="short_hinge_sc" euler="-90 0 0"type="mesh" mesh="short_hinge_sc"/>
+            </body>
+        </body>
+    
+    </worldbody>
+
+    <actuator>
+        <motor name = "basejoint_motor" joint="basejoint"/>
+    </actuator>
+
+</mujoco>
+""".format(lights = util.ringOfLightsXMLString(0, 3, 5))
 
 
 

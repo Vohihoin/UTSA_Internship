@@ -47,3 +47,4 @@ def ringOfLightsXMLString(starter, radius, height):
 
 
 
+print(ringOfLightsXMLString(0, 3, 5))

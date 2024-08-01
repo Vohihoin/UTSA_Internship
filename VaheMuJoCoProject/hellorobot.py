@@ -65,6 +65,8 @@ xml = """
                         <geom name= "long_hinge_right" type="mesh" mesh = "long_hinge_right"/>
                     </body>
 
+                    <joint />
+
                     <body name="top_board2" pos = "-0.101600 0 0">
                         <geom name="top_board2" euler = "-90 0 0" type="mesh" mesh="top_board2" />
                     </body>
@@ -94,39 +96,7 @@ xml = """
 """.format(lights = util.ringOfLightsXMLString(50, 3, 5))
 
 
-"""
-                <body name="long_hinge_left" pos = "0.304800 0 0">
 
-                    <joint name="long_hinge_left_to_board" axis="0 1 0" frictionloss="0"/>
-                    <geom name= "long_hinge_left" type="mesh" mesh = "long_hinge_left"/>
-
-                    <body name="long_hinge_right" pos = "0 -0.257581 0">
-                        <geom name= "long_hinge_right" type="mesh" mesh = "long_hinge_right"/>
-                    </body>
-
-                    <body name = "short_hinge_left" pos = "0.101600 0.006350 0">
-
-                        <joint name="short_hinge_to_long_hinge" pos = "0 0 0" axis="0 1 0" frictionloss="0"/>
-                        
-                        <geom name = "short_hinge_left" type = "mesh" euler = "-90 0 0" mesh = "short_hinge_left" />
-
-                        <body name = "short_hinge_right" pos = "0 -0.273050 0">
-                            <geom name = "short_hinge_right" type = "mesh" euler = "-90 0 0" mesh = "short_hinge_right" />
-                        </body>
-
-                        <body name = "small_connector_rod" pos = "0 0.006350 0">
-                            <geom name = "small_connector_rod" type = "mesh" euler = "90 0 0" mesh = "small_connector_rod" />
-                        </body>
-
-
-                    </body>
-
-                </body>
-
-
-
-
-"""
 
 
 model = mujoco.MjModel.from_xml_string(xml)

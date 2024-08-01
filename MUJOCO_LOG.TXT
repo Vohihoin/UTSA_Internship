@@ -1,0 +1,24 @@
+Wed Jul 31 09:04:34 2024
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Wed Jul 31 09:04:34 2024
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Wed Jul 31 09:04:45 2024
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Wed Jul 31 09:04:46 2024
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Wed Jul 31 09:32:18 2024
+WARNING: Nan, Inf or huge value in QACC at DOF 2. The simulation is unstable. Time = 0.1760.
+
+Thu Aug  1 09:59:31 2024
+WARNING: Nan, Inf or huge value in QACC at DOF 1. The simulation is unstable. Time = 0.1060.
+
+Thu Aug  1 10:00:00 2024
+WARNING: Nan, Inf or huge value in QACC at DOF 1. The simulation is unstable. Time = 0.1060.
+
+Thu Aug  1 10:00:18 2024
+WARNING: Nan, Inf or huge value in QACC at DOF 1. The simulation is unstable. Time = 0.1060.
+

@@ -1,3 +1,5 @@
+
+
 def getScoreFromPosition(angle, twisted, sideBending):
     score = 0
     if angle >= 0 and angle < 20:

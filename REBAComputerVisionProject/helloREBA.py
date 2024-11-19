@@ -1,3 +1,14 @@
+#########################################################################################################################
+# Project Name: REBA Safety Tester (aka REST)
+# Description: Designed to be used in the constructions site by safety officials to ensure workers are in safe working positions
+#              Works using the REBA ergonomic assessment method which holistically evaulates a worker's position and assigns
+#              a safety score. For our purposes, we'll only be using up to the table C score which is out of 12. The higher the score
+#              the more unsafe the worker's position is in
+# Author: Vahe Ohihoin
+#########################################################################################################################
+
+
+
 import cv2
 import mediapipe as mp
 import math
@@ -12,12 +23,17 @@ import Load
 import Scoring
 import Person
 import VectorCalcs
-import numpy as np
+import numpy
+
+
 
 # Capture source is webcam number or video file path. 0 is inbuilt webcam and we start counting up from there
 capture_source = 0
 
+# webcam object used for capturing footage
 webcam = cv2.VideoCapture(capture_source)
+
+#mediapipe generic objects used for creating more specific objects for producing results
 mpPose = mp.solutions.pose
 mpDraw = mp.solutions.drawing_utils
 mpHands = mp.solutions.hands
@@ -43,43 +59,47 @@ Vahe = Person.Person(neck1,trunk1,legs1,load1,upperArm1,lowerArm1,wrist1,0,0)
 # Smoothening utility variables
 smootheningCounter = 0
 firstRun = True
+
 REBAScoreSum = 0
+NTLScoreSum = 0 #NTL - Neck Trunk Leg
+AWScoreSum = 0 #AW - Arm Wrist
+
+REBAScore = 0
+NTLScore = 0
+AWScore = 0
 
 
 while True:
 
-    ret, frame = webcam.read()
+    # frame collection
+    ret, frame = webcam.read() # ret tells if the frame was captured properly
+
+    if (not ret):
+        break
+
+    # variables we'll use later
     dict_of_landmarks_raw = {}
     dict_of_landmarks = {}
-    listOfHandDicts = []
+    listOfHandDicts = [] # we need a list of hand dictionaries because we may have multiple hands and we'd need a dictionairy for the points
+                         # of each hand
     
-
+    # value assignment
     h, w, c = frame.shape
 
     #Processing
-    frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = pose.process(frameRGB)
-    handResults = hands.process(frameRGB)
+    frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # frame has to RGB for medidapipe
+    fullBodyResults = pose.process(frameRGB) # fullBodyResults is an object encompassing the entire pose points and their position values
+    handResults = hands.process(frameRGB) # likewise for handResults
     
     # Creating a list of dictionaries of landmarks
-    
-    if handResults.multi_hand_landmarks != None:
+    if (handResults.multi_hand_landmarks != None):
 
-        for hand in handResults.multi_hand_landmarks:
-
+        for hand in handResults.multi_hand_landmarks: # .multi_hand_landmarks is an iterable of hand objects each object containing the points of
+                                                  # a single hand
             # drawing landmarks
             mpDraw.draw_landmarks(frame, hand, mpHands.HAND_CONNECTIONS)
-
-            
-            """
-            We have two dictionaries,
-            one for the hands
-            the other for the dict of landmarks
-            """
-
             workingLandmarkDict = {}
             for id, lm in enumerate(hand.landmark):
-
                 workingLandmarkDict[id] = lm
 
             listOfHandDicts.append(workingLandmarkDict)
@@ -88,17 +108,18 @@ while True:
 
     #Creating a dict of pose landmarks for the person in frame
     
-    if results.pose_landmarks != None:
+    if fullBodyResults.pose_landmarks != None:
 
         # Drawing landmarks
-        mpDraw.draw_landmarks(frame, results.pose_landmarks, mpPose.POSE_CONNECTIONS)
+        mpDraw.draw_landmarks(frame, fullBodyResults.pose_landmarks, mpPose.POSE_CONNECTIONS)
         dictOfHands = {}
 
-        for id, lm in enumerate(results.pose_landmarks.landmark):
+        for id, lm in enumerate(fullBodyResults.pose_landmarks.landmark):
             dict_of_landmarks_raw[id] = lm
         
         
-        # Converting the landmarks to actual image co-ordinates
+        # Converting the landmarks (which go from 0 to 1) to actual image co-ordinates
+        # we now have a dictionary of tuples for each landmark (point) in the captured body
         
         for index, key in enumerate(dict_of_landmarks_raw):
 
@@ -161,7 +182,7 @@ while True:
         
         """
 
-        pointsNecessary = 7 in dict_of_landmarks_raw and 8 in dict_of_landmarks_raw and 11 in dict_of_landmarks_raw and 12 in dict_of_landmarks_raw
+        pointsNecessary = (7 in dict_of_landmarks_raw) and (8 in dict_of_landmarks_raw) and (11 in dict_of_landmarks_raw) and (12 in dict_of_landmarks_raw)
         
         if pointsNecessary:
 
@@ -457,8 +478,8 @@ while True:
             right_wrist_angle = (180 - VectorCalcs.getAngleBetweenVectors(rightLowerArmVector, rightHandVector))
             left_wrist_angle = (180 - VectorCalcs.getAngleBetweenVectors(leftLowerArmVector, leftHandVector))
 
-            cv2.putText(frame, "Right Wrist Angle : " + str(int(right_wrist_angle)), (100,50), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
-            cv2.putText(frame, "Left Wrist Angle " +str(int(left_wrist_angle)), (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
+            #cv2.putText(frame, "Right Wrist Angle : " + str(int(right_wrist_angle)), (100,50), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
+            #cv2.putText(frame, "Left Wrist Angle " +str(int(left_wrist_angle)), (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
 
 
             # we use the worst angle among the wrists to set our angle
@@ -482,28 +503,41 @@ while True:
 
 
     # Smoothening Utility to Prevent Fluctuation of REBA Score
+    # We essentially find the average score over smoothening number of frames
     smootheningFrames = 10
 
     if smootheningCounter < smootheningFrames:
         REBAScoreSum += Vahe.getREBAScore()
+        NTLScoreSum += Vahe.getPostureScoreA()
+        AWScoreSum += Vahe.getPostureScoreB()
         smootheningCounter += 1
     else:
         REBAScore = REBAScoreSum/smootheningFrames
+        NTLScore = NTLScoreSum/smootheningFrames
+        AWScore = AWScoreSum/smootheningFrames
         REBAScoreSum = 0
+        NTLScoreSum = 0
+        AWScoreSum = 0
         smootheningCounter = 0
 
 
     if firstRun:
         REBAScore = Vahe.getREBAScore()
+        NTLScore = Vahe.getPostureScoreA()
+        AWScore = Vahe.getPostureScoreB()
+
         firstRun = False
 
-
-    cv2.putText(frame, "REBA Score: " +str(REBAScore), (100,300), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255), 1)
-    cv2.imshow('WINDOW', frame)
+    #Result Display
+    cv2.putText(frame, "REBA Score: " +str(REBAScore) + "/12", (20,20), 5, 0.6, (239,233,187), 1)
+    cv2.putText(frame, "Neck,Trunk,Leg Score: " +str(NTLScore) + "/9", (20,40), 5, 0.6, (184,175,255), 1)
+    cv2.putText(frame, "Arm,Wrist Score: " +str(NTLScore) + "/9", (20,60), 5, 0.6, 	(103,103,243), 1)
+    cv2.imshow('Reba Evaluator', frame)
 
     if cv2.waitKey(5) & 0XFF==ord('q'):
         break
 
 webcam.release()
 cv2.destroyAllWindows()
+
 exit()
